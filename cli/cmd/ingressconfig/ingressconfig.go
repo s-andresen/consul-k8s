@@ -1,4 +1,4 @@
-package proxyconfig
+package ingressconfig
 
 import (
 	"fmt"
@@ -8,21 +8,21 @@ import (
 
 	"github.com/hashicorp/consul-k8s/cli/common"
 	"github.com/hashicorp/consul-k8s/cli/common/flag"
-	"github.com/hashicorp/consul-k8s/cli/common/terminal"
 	"github.com/hashicorp/consul-k8s/cli/format"
 	"k8s.io/client-go/kubernetes"
 )
 
-// Command is the proxy-config command.
+// Command is the ingress-config command.
 type Command struct {
 	*common.BaseCommand
 
 	set *flag.Sets
 
-	flagPodName     string
-	flagNamespace   string
-	flagFullConfig  bool
-	flagFormat      string
+	// Command options
+	flagFullConfig bool
+	flagFormat     string
+
+	// Global options
 	flagKubeConfig  string
 	flagKubeContext string
 
@@ -32,46 +32,23 @@ type Command struct {
 	help string
 }
 
-// Run queries the Kubernetes Pod specified and returns its proxy configuration.
 func (c *Command) Run(args []string) int {
 	c.once.Do(c.init)
-	c.Log.ResetNamed("proxy-config")
+	c.Log.ResetNamed("ingress-config")
 	defer common.CloseWithError(c.BaseCommand)
 
-	if err := c.set.Parse(args); err != nil {
-		c.UI.Output("Error parsing flags: "+err.Error(), terminal.WithErrorStyle())
-		return 1
-	}
-
-	if err := c.validateFlags(); err != nil {
-		c.UI.Output("Error validating flags: "+err.Error(), terminal.WithErrorStyle())
-		return 1
-	}
-
-	if err := c.setupKubernetes(); err != nil {
-		c.UI.Output("Error setting up Kubernetes client: "+err.Error(), terminal.WithErrorStyle())
-		return 1
-	}
-
-	config, err := c.fetchConfig()
-	if err != nil {
-		c.UI.Output("Error fetching configuration for " + c.flagPodName + ": " + err.Error())
-		return 1
-	}
-
-	c.UI.Output("Proxy configuration for "+c.flagPodName+"in namespace "+c.flagNamespace, terminal.WithHeaderStyle())
-	c.outputConfig(config)
+	c.UI.Output("Not implemented")
 
 	return 0
 }
 
 func (c *Command) Help() string {
 	c.once.Do(c.init)
-	return c.Synopsis() + "\n\nUsage: consul-k8s proxy-config [flags]\n\n" + c.help
+	return c.Synopsis() + "\n\nUsage: consul-k8s ingress-config [flags]\n\n" + c.help
 }
 
 func (c *Command) Synopsis() string {
-	return "Get the proxy configuration for a Kubernetes Pod."
+	return "Get the proxy configuration for Consul Ingress."
 }
 
 func (c *Command) init() {
@@ -79,19 +56,6 @@ func (c *Command) init() {
 	c.set = flag.NewSets()
 
 	f := c.set.NewSet("Command Options")
-	f.StringVar(&flag.StringVar{
-		Name:    "pod",
-		Usage:   "The name of the Kubernetes Pod to query.",
-		Aliases: []string{"p"},
-		Target:  &c.flagPodName,
-	})
-	f.StringVar(&flag.StringVar{
-		Name:    "namespace",
-		Usage:   "The Namespace of the Kubernetes Pod to query.",
-		Aliases: []string{"n"},
-		Target:  &c.flagNamespace,
-		Default: "default",
-	})
 	f.BoolVar(&flag.BoolVar{
 		Name:   "full-config",
 		Usage:  "Return the full proxy configuration.",
@@ -127,10 +91,6 @@ func (c *Command) validateFlags() error {
 		return fmt.Errorf("non-flag arguments given: %s", strings.Join(c.set.Args(), ", "))
 	}
 
-	if c.flagPodName == "" {
-		return fmt.Errorf("pod must be specified (e.g. -pod podname)")
-	}
-
 	return nil
 }
 
@@ -147,7 +107,7 @@ func (c *Command) setupKubernetes() error {
 func (c *Command) fetchConfig() (string, error) {
 	// This will use the Kubernetes API in the final version.
 	output, err := exec.Command(
-		"kubectl", "exec", c.flagPodName, "--namespace", c.flagNamespace,
+		"kubectl", "exec", "", "--namespace", "",
 		"-c", "envoy-sidecar", "--", "wget", "-qO-", "127.0.0.1:19000/config_dump",
 	).Output()
 

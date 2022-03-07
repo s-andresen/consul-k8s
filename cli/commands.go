@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/hashicorp/consul-k8s/cli/cmd/ingressconfig"
 	"github.com/hashicorp/consul-k8s/cli/cmd/install"
 	"github.com/hashicorp/consul-k8s/cli/cmd/proxyconfig"
 	"github.com/hashicorp/consul-k8s/cli/cmd/status"
@@ -49,8 +50,13 @@ func initializeCommands(ctx context.Context, log hclog.Logger) (*common.BaseComm
 				Version:     version.GetHumanVersion(),
 			}, nil
 		},
-		"proxyconfig": func() (cli.Command, error) {
+		"proxy-config": func() (cli.Command, error) {
 			return &proxyconfig.Command{
+				BaseCommand: baseCommand,
+			}, nil
+		},
+		"ingress-config": func() (cli.Command, error) {
+			return &ingressconfig.Command{
 				BaseCommand: baseCommand,
 			}, nil
 		},

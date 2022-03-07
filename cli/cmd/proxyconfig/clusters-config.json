@@ -1,0 +1,128 @@
+{
+  "@type": "type.googleapis.com/envoy.admin.v3.ClustersConfigDump",
+  "static_clusters": [
+    {
+      "cluster": {
+        "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+        "name": "local_agent",
+        "type": "STATIC",
+        "connect_timeout": "1s",
+        "http2_protocol_options": {},
+        "load_assignment": {
+          "cluster_name": "local_agent",
+          "endpoints": [
+            {
+              "lb_endpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "socket_address": {
+                        "address": "172.18.0.2",
+                        "port_value": 8502
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "last_updated": "2022-03-01T22:57:32.772Z"
+    }
+  ],
+  "dynamic_active_clusters": [
+    {
+      "version_info": "ad70d0815091ccaae13efcd519d29aa591ba7d51043f6ee692d960555ee81cd2",
+      "cluster": {
+        "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+        "name": "local_app",
+        "type": "STATIC",
+        "connect_timeout": "5s",
+        "load_assignment": {
+          "cluster_name": "local_app",
+          "endpoints": [
+            {
+              "lb_endpoints": [
+                {
+                  "endpoint": {
+                    "address": {
+                      "socket_address": {
+                        "address": "127.0.0.1",
+                        "port_value": 0
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "last_updated": "2022-03-01T22:57:32.929Z"
+    },
+    {
+      "version_info": "dcd8d0247ba0149bfdc151428353b3f29d0665bf5c12af6a105a0abcc5af40ac",
+      "cluster": {
+        "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+        "name": "original-destination",
+        "type": "ORIGINAL_DST",
+        "connect_timeout": "5s",
+        "lb_policy": "CLUSTER_PROVIDED"
+      },
+      "last_updated": "2022-03-01T22:57:32.956Z"
+    },
+    {
+      "version_info": "bda39a9054edb9c767486b7837e11e5e0f28551db2d0c7d31c3be4955fc04f50",
+      "cluster": {
+        "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+        "name": "server.default.dc1.internal.4563c051-0a92-e021-da69-0be9acd651da.consul",
+        "type": "EDS",
+        "eds_cluster_config": {
+          "eds_config": {
+            "ads": {},
+            "resource_api_version": "V3"
+          }
+        },
+        "connect_timeout": "5s",
+        "circuit_breakers": {},
+        "outlier_detection": {},
+        "transport_socket": {
+          "name": "tls",
+          "typed_config": {
+            "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+            "common_tls_context": {
+              "tls_params": {},
+              "tls_certificates": [
+                {
+                  "certificate_chain": {
+                    "inline_string": "-----BEGIN CERTIFICATE-----\nMIICGTCCAb+gAwIBAgIBCTAKBggqhkjOPQQDAjAwMS4wLAYDVQQDEyVwcmktYWlz\nY3dnMS5jb25zdWwuY2EuNDU2M2MwNTEuY29uc3VsMB4XDTIyMDMwMTIyNTYxOFoX\nDTIyMDMwNDIyNTYxOFowADBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABOkztqwq\nP4SnSZ+T1JIakPeSrgcL+k30wu7rAE+xVN5lsY+iK6DAIVmHapLkOsuElI13arJa\nDaaqqdWJUG2LtqGjgfkwgfYwDgYDVR0PAQH/BAQDAgO4MB0GA1UdJQQWMBQGCCsG\nAQUFBwMCBggrBgEFBQcDATAMBgNVHRMBAf8EAjAAMCkGA1UdDgQiBCB7wCCVHVTd\nv6C07SflIf2lX1pvC1wlQIQi2zrhxaBg7TArBgNVHSMEJDAigCAMfL0aTpEwCQMh\nrD6OZMrC7lJyKSB339GwDGyU4OV3vzBfBgNVHREBAf8EVTBThlFzcGlmZmU6Ly80\nNTYzYzA1MS0wYTkyLWUwMjEtZGE2OS0wYmU5YWNkNjUxZGEuY29uc3VsL25zL2Rl\nZmF1bHQvZGMvZGMxL3N2Yy9jbGllbnQwCgYIKoZIzj0EAwIDSAAwRQIhAKKrhL0B\ny4PR/8a30JC7BmBmNWxrPSRIBaLsdhMJ9CDPAiAA7RJqkh1sc6XLx65P9FYSqDxT\nViilKSWGfQ23Ik8i1Q==\n-----END CERTIFICATE-----\n"
+                  },
+                  "private_key": {
+                    "inline_string": "[redacted]"
+                  }
+                }
+              ],
+              "validation_context": {
+                "trusted_ca": {
+                  "inline_string": "-----BEGIN CERTIFICATE-----\nMIICDjCCAbOgAwIBAgIBBzAKBggqhkjOPQQDAjAwMS4wLAYDVQQDEyVwcmktYWlz\nY3dnMS5jb25zdWwuY2EuNDU2M2MwNTEuY29uc3VsMB4XDTIyMDMwMTIyNTY1OFoX\nDTMyMDIyNzIyNTY1OFowMDEuMCwGA1UEAxMlcHJpLWFpc2N3ZzEuY29uc3VsLmNh\nLjQ1NjNjMDUxLmNvbnN1bDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABDzGo4Ao\nas3SpBZl+0/WG8MWcuMgcu/VihHmxs+kRlepVWC+H9KA0IwtUTKgVtCKf7qp7dbJ\nG54R4tgv5qG6X/Cjgb0wgbowDgYDVR0PAQH/BAQDAgGGMA8GA1UdEwEB/wQFMAMB\nAf8wKQYDVR0OBCIEIAx8vRpOkTAJAyGsPo5kysLuUnIpIHff0bAMbJTg5Xe/MCsG\nA1UdIwQkMCKAIAx8vRpOkTAJAyGsPo5kysLuUnIpIHff0bAMbJTg5Xe/MD8GA1Ud\nEQQ4MDaGNHNwaWZmZTovLzQ1NjNjMDUxLTBhOTItZTAyMS1kYTY5LTBiZTlhY2Q2\nNTFkYS5jb25zdWwwCgYIKoZIzj0EAwIDSQAwRgIhALkoAuOMTRSTMQnByTCN11Uk\nOsd9eet4efD8tJtXwXppAiEAl6Fd/cWtGLT3ciEOpgxJMIEBwTKtd9xO/KJa67Cr\nZJM=\n-----END CERTIFICATE-----\n"
+                },
+                "match_subject_alt_names": [
+                  {
+                    "exact": "spiffe://4563c051-0a92-e021-da69-0be9acd651da.consul/ns/default/dc/dc1/svc/server"
+                  }
+                ]
+              }
+            },
+            "sni": "server.default.dc1.internal.4563c051-0a92-e021-da69-0be9acd651da.consul"
+          }
+        },
+        "common_lb_config": {
+          "healthy_panic_threshold": {}
+        },
+        "alt_stat_name": "server.default.dc1.internal.4563c051-0a92-e021-da69-0be9acd651da.consul"
+      },
+      "last_updated": "2022-03-01T22:57:32.908Z"
+    }
+  ]
+}
