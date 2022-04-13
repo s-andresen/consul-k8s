@@ -18,3 +18,18 @@ func ListConsulSecrets(ctx context.Context, client kubernetes.Interface, namespa
 
 	return secrets, err
 }
+
+// PodExists attempts to check if a Kubernetes Pod exists with the given name
+// in the given namespace.
+func PodExists(ctx context.Context, client kubernetes.Interface, namespace, name string) error {
+	pod, err := client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if pod == nil {
+		return fmt.Errorf("pod %s/%s not found", namespace, name)
+	}
+
+	return nil
+}
