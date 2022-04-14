@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"sync"
-
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 const envoyPort = 19000
@@ -35,22 +32,4 @@ func FetchConfig(ctx context.Context, kubeconfig string, namespace, name string)
 	}
 
 	return io.ReadAll(resp.Body)
-}
-
-// portForward sets up port forwarding from the given localPort to the given podPort.
-func portForward(kubeconfig, namespace, name string, localPort int, readyCh, stopCh chan struct{}) error {
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	kcfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", namespace, name)
-	hostIP := "localhost"
-
-	go func() {
-
-	}()
-
-	wg.Wait()
-
-	return nil
 }
