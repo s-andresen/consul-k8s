@@ -2,6 +2,8 @@ package list
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/hashicorp/consul-k8s/cli/common"
@@ -73,6 +75,7 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Get all of the pods in the namespace
+	// TODO only get pods which have an Envoy config
 	pods, err := c.kubernetes.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		c.UI.Output(err.Error())
@@ -80,7 +83,7 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Open the port-forward to each of the pods
-	portForwardSessions := make([]*common.PortForward, len(pods.Items))
+	envoyEndpoints := make(map[string]string)
 	for _, pod := range pods.Items {
 		pf := common.PortForward{
 			Namespace:   namespace,
@@ -99,7 +102,22 @@ func (c *Command) Run(args []string) int {
 			return 1
 		}
 
-		portForwardSessions = append(portForwardSessions, &pf)
+		envoyEndpoints[pod.Name] = pf.Endpoint()
+	}
+
+	envoyStatuses := make(map[string]string, len(pods.Items))
+	for pod, endpoint := range envoyEndpoints {
+		resp, err := http.Get(fmt.Sprintf("%s/ready", endpoint))
+		if err != nil {
+			c.UI.Output(err.Error())
+			return 1
+		}
+
+		if resp.StatusCode == 200 {
+			envoyStatuses[pod] = "Healthy"
+		} else {
+			envoyStatuses[pod] = "Unhealthy"
+		}
 	}
 
 	table := map[string][]string{
@@ -111,7 +129,7 @@ func (c *Command) Run(args []string) int {
 		table["Name"] = append(table["Name"], pod.Name)
 		// TODO actually read the proxy type
 		table["Type"] = append(table["Type"], "Service")
-		table["Status"] = append(table["Status"], "Healthy")
+		table["Status"] = append(table["Status"], envoyStatuses[pod.Name])
 	}
 
 	c.PrintTable(table)
@@ -133,7 +151,12 @@ func (c *Command) PrintTable(table map[string][]string) {
 	tbl.Rows = [][]terminal.TableEntry{}
 
 	for i := range table["Name"] {
-		statusColor := terminal.Green
+		var statusColor string
+		if table["Status"][i] == "Healthy" {
+			statusColor = terminal.Green
+		} else {
+			statusColor = terminal.Red
+		}
 
 		trow := []terminal.TableEntry{
 			{

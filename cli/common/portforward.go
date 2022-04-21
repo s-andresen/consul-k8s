@@ -35,6 +35,8 @@ func (pf *PortForward) Open() error {
 	// TODO replace this with "freeport"
 	// Generate random port between 49152 and 65535 (dynamic ports)
 	pf.localPort = rand.Intn(65535-49152) + 49152
+	pf.stopChan = make(chan struct{}, 1)
+	pf.readyChan = make(chan struct{}, 1)
 
 	config, err := loadApiClientConfig(pf.KubeConfig, pf.KubeContext)
 
@@ -63,19 +65,17 @@ func (pf *PortForward) Open() error {
 		errChan <- portforwarder.ForwardPorts()
 	}()
 
-	pf.UI.Output("Hi")
 	select {
 	case err := <-errChan:
 		return err
 	case <-portforwarder.Ready:
-		pf.UI.Output("Port forwarding to %s started", pf.PodName)
 		return nil
 	}
 }
 
 func (pf *PortForward) Endpoint() string {
 	// Need to check if open first
-	return fmt.Sprintf("localhost:%d", pf.localPort)
+	return fmt.Sprintf("http://localhost:%d", pf.localPort)
 }
 
 func (pf *PortForward) Close() {
