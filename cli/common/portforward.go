@@ -63,10 +63,12 @@ func (pf *PortForward) Open() error {
 		errChan <- portforwarder.ForwardPorts()
 	}()
 
+	pf.UI.Output("Hi")
 	select {
 	case err := <-errChan:
 		return err
-	case <-pf.readyChan:
+	case <-portforwarder.Ready:
+		pf.UI.Output("Port forwarding to %s started", pf.PodName)
 		return nil
 	}
 }
