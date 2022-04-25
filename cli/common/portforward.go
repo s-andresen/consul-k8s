@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"os"
 
 	"github.com/hashicorp/consul-k8s/cli/common/terminal"
 	"k8s.io/client-go/kubernetes"
@@ -55,7 +54,7 @@ func (pf *PortForward) Open() error {
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", portForwardCreateURL)
 
 	ports := []string{fmt.Sprintf("%d:%d", pf.localPort, pf.RemotePort)}
-	portforwarder, err := portforward.New(dialer, ports, pf.stopChan, pf.readyChan, os.Stdout, os.Stderr)
+	portforwarder, err := portforward.New(dialer, ports, pf.stopChan, pf.readyChan, nil, nil)
 	if err != nil {
 		return err
 	}
