@@ -4,8 +4,11 @@ import (
 	"context"
 
 	"github.com/hashicorp/consul-k8s/cli/cmd/install"
+	"github.com/hashicorp/consul-k8s/cli/cmd/proxy/clusters"
 	"github.com/hashicorp/consul-k8s/cli/cmd/proxy/config"
 	"github.com/hashicorp/consul-k8s/cli/cmd/proxy/list"
+	"github.com/hashicorp/consul-k8s/cli/cmd/proxy/listeners"
+	"github.com/hashicorp/consul-k8s/cli/cmd/proxy/secrets"
 	"github.com/hashicorp/consul-k8s/cli/cmd/status"
 	"github.com/hashicorp/consul-k8s/cli/cmd/uninstall"
 	"github.com/hashicorp/consul-k8s/cli/cmd/upgrade"
@@ -57,6 +60,21 @@ func initializeCommands(ctx context.Context, log hclog.Logger) (*common.BaseComm
 		},
 		"proxy config": func() (cli.Command, error) {
 			return &config.Command{
+				BaseCommand: baseCommand,
+			}, nil
+		},
+		"proxy secrets": func() (cli.Command, error) {
+			return &secrets.Command{
+				BaseCommand: baseCommand,
+			}, nil
+		},
+		"proxy listeners": func() (cli.Command, error) {
+			return &listeners.Command{
+				BaseCommand: baseCommand,
+			}, nil
+		},
+		"proxy clusters": func() (cli.Command, error) {
+			return &clusters.Command{
 				BaseCommand: baseCommand,
 			}, nil
 		},
