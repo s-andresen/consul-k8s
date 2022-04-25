@@ -109,3 +109,11 @@ func IsValidLabel(label string) bool {
 
 	return true
 }
+
+func DefaultKubeConfigPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return home + "/.kube/config", nil
+}
