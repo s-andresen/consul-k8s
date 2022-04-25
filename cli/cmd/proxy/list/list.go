@@ -82,6 +82,12 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
+	kubeConfig, err := common.DefaultKubeConfigPath()
+	if err != nil {
+		c.UI.Output(err.Error())
+		return 1
+	}
+
 	// Open the port-forward to each of the pods
 	envoyEndpoints := make(map[string]string)
 	for _, pod := range pods.Items {
@@ -91,7 +97,7 @@ func (c *Command) Run(args []string) int {
 			RemotePort:  19000,
 			UI:          c.UI,
 			KubeClient:  c.kubernetes,
-			KubeConfig:  "/Users/thomaseckert/.kube/config",
+			KubeConfig:  kubeConfig,
 			KubeContext: "kind-kind",
 		}
 

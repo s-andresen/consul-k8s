@@ -70,6 +70,11 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
+	if c.flagPodName == "" {
+		c.UI.Output(c.help)
+		return 1
+	}
+
 	// TODO I shouldn't use the Helm CLI here...
 	settings := helmCLI.New()
 
@@ -90,6 +95,11 @@ func (c *Command) Run(args []string) int {
 	}
 
 	c.UI.Output("Pod: %s", c.flagPodName)
+	kubeConfig, err := common.DefaultKubeConfigPath()
+	if err != nil {
+		c.UI.Output("Error retrieving default kubeconfig path:\n%v", err, terminal.WithErrorStyle())
+		return 1
+	}
 
 	pf := common.PortForward{
 		Namespace:   namespace,
@@ -97,10 +107,10 @@ func (c *Command) Run(args []string) int {
 		RemotePort:  19000,
 		UI:          c.UI,
 		KubeClient:  c.kubernetes,
-		KubeConfig:  "/Users/thomaseckert/.kube/config",
+		KubeConfig:  kubeConfig,
 		KubeContext: "kind-kind",
 	}
-	err := pf.Open()
+	err = pf.Open()
 	if err != nil {
 		c.UI.Output("Error opening port-forward:\n%v", err, terminal.WithErrorStyle())
 		return 1
