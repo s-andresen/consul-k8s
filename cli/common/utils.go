@@ -53,6 +53,8 @@ func CheckForInstallations(settings *helmCLI.EnvSettings, uiLogger action.DebugL
 	return "", "", errors.New("couldn't find consul installation")
 }
 
+var Context string = "teckert@hashicorp.com@thomas-eks-test.us-east-2.eksctl.io"
+
 // MergeMaps merges two maps giving b precedent.
 // @source: https://github.com/helm/helm/blob/main/pkg/cli/values/options.go
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {

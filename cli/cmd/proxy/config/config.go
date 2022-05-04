@@ -94,7 +94,6 @@ func (c *Command) Run(args []string) int {
 		}
 	}
 
-	c.UI.Output("Pod: %s", c.flagPodName)
 	kubeConfig, err := common.DefaultKubeConfigPath()
 	if err != nil {
 		c.UI.Output("Error retrieving default kubeconfig path:\n%v", err, terminal.WithErrorStyle())
@@ -108,7 +107,7 @@ func (c *Command) Run(args []string) int {
 		UI:          c.UI,
 		KubeClient:  c.kubernetes,
 		KubeConfig:  kubeConfig,
-		KubeContext: "kind-kind",
+		KubeContext: common.Context,
 	}
 	err = pf.Open()
 	if err != nil {
@@ -130,7 +129,13 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	c.UI.Output("%s", string(config))
+	c.UI.Output(fmt.Sprintf("%s Proxy Configuration", c.flagPodName), terminal.WithHeaderStyle())
+	err = c.Print(common.NewEnvoyConfig(config))
+	if err != nil {
+		c.UI.Output("Error printing config:\n%v", err, terminal.WithErrorStyle())
+		return 1
+	}
+
 	return 0
 }
 
@@ -140,4 +145,31 @@ func (c *Command) Help() string {
 
 func (c *Command) Synopsis() string {
 	return ""
+}
+
+func (c *Command) Print(config common.EnvoyConfig) error {
+
+	c.UI.Output("\nClusters")
+	clusters := c.formatClusterTable(config.Clusters)
+	c.UI.Table(clusters)
+
+	c.UI.Output("\nListeners")
+	listeners := c.formatListenersTable(config.Listeners)
+	c.UI.Table(listeners)
+
+	return nil
+}
+
+func (c *Command) formatClusterTable(clusters map[string]interface{}) *terminal.Table {
+	tbl := terminal.NewTable("Name")
+	tbl.Rows = [][]terminal.TableEntry{}
+
+	return tbl
+}
+
+func (c *Command) formatListenersTable(listeners map[string]interface{}) *terminal.Table {
+	tbl := terminal.NewTable("Name", "Address", "Port", "Filter Chain Match", "Destination Cluster")
+	tbl.Rows = [][]terminal.TableEntry{}
+
+	return tbl
 }

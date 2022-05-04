@@ -1,0 +1,13 @@
+consul-ingress-gateway-6fb5544485-7jfjw Proxy Configuration
+
+Listeners
+Name                    Address:Port            Direction       Filter Chain Match                  Destination Cluster     Last Updated
+----------------------------------------------------------------------------------------------------------------------------------------------------
+envoy_ready_listener    192.168.47.235:21000    Inbound                                                                     2022-04-26T16:58:50.568Z
+http:0.0.0.0:8080       0.0.0.0:8080            Outbound                                            server                  2022-04-26T16:59:46.751Z
+
+Secrets
+Name        Type            Status      Valid      Valid from                   Valid to
+--------------------------------------------------------------------------------------------------------
+default     Cert chain      Active      True       2022-04-26T16:59:42.813Z     2022-07-26T16:59:42.813Z
+ROOTCA      CA              Active      True       2022-04-26T16:59:42.813Z     2022-07-26T16:59:42.813Z

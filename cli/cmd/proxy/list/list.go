@@ -21,6 +21,8 @@ type Command struct {
 
 	set *flag.Sets
 
+	flagNamespace string
+
 	flagKubeConfig  string
 	flagKubeContext string
 
@@ -30,7 +32,17 @@ type Command struct {
 
 func (c *Command) init() {
 	c.set = flag.NewSets()
-	f := c.set.NewSet("GlobalOptions")
+
+	f := c.set.NewSet("Command Options")
+	f.StringVar(&flag.StringVar{
+		Name:    "namespace",
+		Target:  &c.flagNamespace,
+		Default: "default",
+		Usage:   "The namespace to list proxies in.",
+		Aliases: []string{"n"},
+	})
+
+	f = c.set.NewSet("GlobalOptions")
 	f.StringVar(&flag.StringVar{
 		Name:    "kubeconfig",
 		Aliases: []string{"c"},
@@ -49,11 +61,13 @@ func (c *Command) init() {
 }
 
 func (c *Command) Run(args []string) int {
-	namespace := "default"
-
 	c.once.Do(c.init)
 	c.Log.ResetNamed("list")
 	defer common.CloseWithError(c.BaseCommand)
+	if err := c.set.Parse(args); err != nil {
+		c.UI.Output(err.Error())
+		return 1
+	}
 
 	// TODO I shouldn't use the Helm CLI here...
 	settings := helmCLI.New()
@@ -75,30 +89,33 @@ func (c *Command) Run(args []string) int {
 	}
 
 	// Get all of the pods in the namespace
-	// TODO only get pods which have an Envoy config
-	pods, err := c.kubernetes.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	// TODO get the Consul gateways too
+	pods, err := c.kubernetes.CoreV1().Pods(c.flagNamespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "consul.hashicorp.com/connect-inject-status=injected",
+	})
 	if err != nil {
 		c.UI.Output(err.Error())
 		return 1
 	}
 
-	kubeConfig, err := common.DefaultKubeConfigPath()
+	c.flagKubeConfig, err = common.DefaultKubeConfigPath()
 	if err != nil {
 		c.UI.Output(err.Error())
 		return 1
 	}
+	c.flagKubeContext = common.Context
 
 	// Open the port-forward to each of the pods
 	envoyEndpoints := make(map[string]string)
 	for _, pod := range pods.Items {
 		pf := common.PortForward{
-			Namespace:   namespace,
+			Namespace:   c.flagNamespace,
 			PodName:     pod.Name,
 			RemotePort:  19000,
 			UI:          c.UI,
 			KubeClient:  c.kubernetes,
-			KubeConfig:  kubeConfig,
-			KubeContext: "kind-kind",
+			KubeConfig:  c.flagKubeConfig,
+			KubeContext: c.flagKubeContext,
 		}
 
 		err := pf.Open()
@@ -120,22 +137,22 @@ func (c *Command) Run(args []string) int {
 		}
 
 		if resp.StatusCode == 200 {
-			envoyStatuses[pod] = "Healthy"
+			envoyStatuses[pod] = "True"
 		} else {
-			envoyStatuses[pod] = "Unhealthy"
+			envoyStatuses[pod] = "False"
 		}
 	}
 
 	table := map[string][]string{
-		"Name":   {},
-		"Type":   {},
-		"Status": {},
+		"Name":  {},
+		"Type":  {},
+		"Ready": {},
 	}
 	for _, pod := range pods.Items {
 		table["Name"] = append(table["Name"], pod.Name)
 		// TODO actually read the proxy type
 		table["Type"] = append(table["Type"], "Service")
-		table["Status"] = append(table["Status"], envoyStatuses[pod.Name])
+		table["Ready"] = append(table["Ready"], envoyStatuses[pod.Name])
 	}
 
 	c.PrintTable(table)
@@ -153,12 +170,12 @@ func (c *Command) Help() string {
 
 func (c *Command) PrintTable(table map[string][]string) {
 	// TODO would be cool to generalize this.
-	tbl := terminal.NewTable("Name", "Type", "Status")
+	tbl := terminal.NewTable("Name", "Type", "Ready")
 	tbl.Rows = [][]terminal.TableEntry{}
 
 	for i := range table["Name"] {
 		var statusColor string
-		if table["Status"][i] == "Healthy" {
+		if table["Ready"][i] == "True" {
 			statusColor = terminal.Green
 		} else {
 			statusColor = terminal.Red
@@ -172,7 +189,7 @@ func (c *Command) PrintTable(table map[string][]string) {
 				Value: table["Type"][i],
 			},
 			{
-				Value: table["Status"][i],
+				Value: table["Ready"][i],
 				Color: statusColor,
 			},
 		}

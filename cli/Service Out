@@ -1,0 +1,22 @@
+client-767ccfc8f9-4wb5w Proxy Configuration
+
+Clusters
+Name                    FQDN                                                                        Endpoint                Type                Last Updated
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+server                  server.default.dc1.internal.2133e92c-c542-8fde-d388-5817ab6f149f.consul                             EDS                 2022-05-01T03:11:50.231Z
+local_agent                                                                                         192.168.44.239:8502     Static              2022-04-26T16:59:42.572Z
+local_app                                                                                           127.0.0.1:0             Static              2022-04-26T16:59:42.623Z
+original-destination                                                                                                        Original DST        2022-04-26T16:59:42.667Z
+
+
+Listeners
+Name                Address:Port            Direction       Filter Chain Match                  Destination Cluster     Last Updated
+------------------------------------------------------------------------------------------------------------------------------------------------
+public_listener     192.168.52.101:20000    Inbound                                                                     2022-05-01T03:12:05.131Z
+outbound_listener   127.0.0.1:15001         Outbound        10.100.27.254/32, 240.0.0.2/32      server                  2022-04-26T16:59:42.813Z
+
+Secrets
+Name        Type            Status      Valid      Valid from                   Valid to
+--------------------------------------------------------------------------------------------------------
+default     Cert chain      Active      True       2022-04-26T16:59:42.813Z     2022-07-26T16:59:42.813Z
+ROOTCA      CA              Active      True       2022-04-26T16:59:42.813Z     2022-07-26T16:59:42.813Z
