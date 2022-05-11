@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -45,7 +46,9 @@ func (pf *PortForward) Open() error {
 
 	// Configure the target for port forwarding.
 	config, err := pf.loadApiClientConfig()
-	postEndpoint := pf.KubeClient.CoreV1().RESTClient().Post()
+	core := pf.KubeClient.CoreV1()
+	rf := core.RESTClient()
+	postEndpoint := rf.Post()
 	portForwardCreateURL := postEndpoint.
 		Resource("pods").
 		Namespace(pf.Namespace).
@@ -106,20 +109,19 @@ func (pf *PortForward) Close() {
 // allocateLocalPort looks for an open port on localhost and sets it to the
 // localPort field.
 func (pf *PortForward) allocateLocalPort() error {
-	// Allocate port 0 on localhost this causes the OS to assign a free port.
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return err
+	}
+	defer listener.Close()
+
+	_, port, err := net.SplitHostPort(listener.Addr().String())
 	if err != nil {
 		return err
 	}
 
-	// Check the listener to get the port number.
-	listener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return err
-	}
-
-	pf.localPort = listener.Addr().(*net.TCPAddr).Port
-	return nil
+	pf.localPort, err = strconv.Atoi(port)
+	return err
 }
 
 // loadApiClientConfig loads the Kubernetes API client configuration using the
