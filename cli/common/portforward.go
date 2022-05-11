@@ -2,7 +2,7 @@ package common
 
 import (
 	"fmt"
-	"net"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -106,19 +106,7 @@ func (pf *PortForward) Close() {
 // allocateLocalPort looks for an open port on localhost and sets it to the
 // localPort field.
 func (pf *PortForward) allocateLocalPort() error {
-	// Allocate port 0 on localhost this causes the OS to assign a free port.
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return err
-	}
-
-	// Check the listener to get the port number.
-	listener, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return err
-	}
-
-	pf.localPort = listener.Addr().(*net.TCPAddr).Port
+	pf.localPort = rand.Intn(65535-49152) + 49152
 	return nil
 }
 
