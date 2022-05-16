@@ -2,11 +2,17 @@ package list
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/consul-k8s/cli/common"
 	"github.com/hashicorp/consul-k8s/cli/common/flag"
 	"github.com/hashicorp/consul-k8s/cli/common/terminal"
+	"github.com/hashicorp/consul-k8s/cli/validation"
+)
+
+const (
+	defaultNamespace = "default"
 )
 
 // Command is the proxy list command.
@@ -77,13 +83,15 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	// Configure the action.
-	c.action = &Action{}
-
-	if err := c.action.Run(); err != nil {
+	c.action = c.configureAction()
+	pods, err := c.action.Run()
+	if err != nil {
 		c.UI.Output(err.Error(), terminal.WithErrorStyle())
 		return 1
 	}
+
+	table := c.formatTable(pods)
+	c.UI.Table(table)
 
 	return 0
 }
@@ -98,5 +106,55 @@ func (c *Command) Help() string {
 }
 
 func (c *Command) validateArgs() error {
+	// -kubeconfig must be a path.
+	if err := validation.IsPath(c.flagKubeConfig); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// configureAction uses the command flags to create the Action that the command
+// will run.
+func (c *Command) configureAction() *Action {
+	// Use -namespace if passed in, "default" if not passed in, override both
+	// if -all-namespaces is true.
+	var namespaceFilter string
+	if c.flagAllNamespaces {
+		namespaceFilter = "" // "" filter is all K8s namespaces.
+	} else {
+		namespaceFilter = c.flagNamespace
+	}
+
+	// TODO
+	kubeconfig := ""
+	kubecontext := ""
+
+	return &Action{
+		NamespaceFilter: namespaceFilter,
+		Kubeconfig:      kubeconfig,
+		Kubecontext:     kubecontext,
+	}
+}
+
+// formatTable takes a map of Pod names to the proxy type
+func (c *Command) formatTable(pods map[string]PodConfig) *terminal.Table {
+	var table *terminal.Table
+	if c.flagAllNamespaces {
+		table = terminal.NewTable("Namespace", "Name", "Type")
+	} else {
+		table = terminal.NewTable("Name", "Type")
+	}
+
+	for fullName, cfg := range pods {
+		name := strings.TrimLeft(fullName, cfg.Namespace)
+		if c.flagAllNamespaces {
+			table.AddRow([]string{cfg.Namespace, name, cfg.ProxyType}, []string{})
+		} else {
+			table.AddRow([]string{name, cfg.ProxyType}, []string{})
+		}
+
+	}
+
+	return table
 }
