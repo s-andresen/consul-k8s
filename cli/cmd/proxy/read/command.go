@@ -207,10 +207,6 @@ func (c *Command) PrintClusters(clusters map[string]interface{}) error {
 	c.UI.Output("Clusters:", terminal.WithHeaderStyle())
 
 	tbl := terminal.NewTable("Name", "FQDN", "Endpoints", "Type", "Last Updated")
-	if clusters["clusters"] == nil {
-		c.UI.Table(tbl)
-		return nil
-	}
 
 	for _, cluster := range clusters["static_clusters"].([]interface{}) {
 		a := cluster.(map[string]interface{})
@@ -321,14 +317,50 @@ func (c *Command) PrintListeners(listeners map[string]interface{}) error {
 	c.UI.Output("Listeners:", terminal.WithHeaderStyle())
 
 	tbl := terminal.NewTable("Name", "Address:Port", "Direction", "Filter Chain Match", "Destination Cluster", "Last Updated")
+
+	for _, listener := range listeners["dynamic_listeners"].([]interface{}) {
+		l := listener.(map[string]interface{})
+		al := l["active_state"].(map[string]interface{})
+		name := strings.Split(l["name"].(string), ":")[0]
+		addr := strings.SplitN(l["name"].(string), ":", 2)[1]
+		l2 := al["listener"].(map[string]interface{})
+		direction := l2["traffic_direction"].(string)
+		fcm := []string{}
+		dest := []string{}
+		lastUpdated := al["last_updated"].(string)
+
+		if direction == "OUTBOUND" {
+			fcs := l2["filter_chains"].([]interface{})
+			for _, fc := range fcs {
+				fc_ := fc.(map[string]interface{})
+				if fc_["filter_chain_match"] != nil {
+					fcmtch := fc_["filter_chain_match"].(map[string]interface{})
+					prs := fcmtch["prefix_ranges"].([]interface{})
+					for _, pr := range prs {
+						pr_ := pr.(map[string]interface{})
+						fcm = append(fcm, pr_["address_prefix"].(string))
+					}
+				}
+				if fc_["filters"] != nil {
+					fltrs := fc_["filters"].([]interface{})
+					for _, fltr := range fltrs {
+						fltr_ := fltr.(map[string]interface{})
+						tc := fltr_["typed_config"].(map[string]interface{})
+						dest = append(dest, tc["cluster"].(string))
+					}
+				}
+			}
+		}
+
+		tbl.Rich([]string{name, addr, direction, strings.Join(fcm, ", "), strings.Join(dest, ", "), lastUpdated}, []string{})
+	}
+
 	c.UI.Table(tbl)
 	return nil
 }
 
 func (c *Command) PrintSecrets(secrets map[string]interface{}) error {
 	c.UI.Output("Secrets:", terminal.WithHeaderStyle())
-
-	fmt.Printf("%+v\n", secrets)
 
 	tbl := terminal.NewTable("Name", "Type", "Status", "Valid", "Valid from", "Valid to")
 	if secrets["secrets"] == nil {
