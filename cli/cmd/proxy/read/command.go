@@ -296,6 +296,31 @@ func (c *Command) PrintListeners(listeners map[string]interface{}) error {
 func (c *Command) PrintRoutes(routes map[string]interface{}) error {
 	c.UI.Output("\nRoutes:")
 	tbl := terminal.NewTable("Name", "Destination Cluster", "Last Updated")
+
+	if routes["static_route_configs"] != nil {
+		for _, static_route_config := range routes["static_route_configs"].([]interface{}) {
+			src_ := static_route_config.(map[string]interface{})
+
+			destinationCluster := ""
+			lastUpdated := src_["last_updated"].(string)
+
+			routecfg := src_["route_config"].(map[string]interface{})
+			name := routecfg["name"].(string)
+
+			for _, vh := range routecfg["virtual_hosts"].([]interface{}) {
+				vh_ := vh.(map[string]interface{})
+				for _, rt := range vh_["routes"].([]interface{}) {
+					rt_ := rt.(map[string]interface{})
+					r := rt_["route"].(map[string]interface{})
+					match := rt_["match"].(map[string]interface{})["prefix"].(string)
+					destinationCluster = fmt.Sprintf("%s%s", r["cluster"].(string), match)
+				}
+			}
+
+			tbl.Rich([]string{name, destinationCluster, lastUpdated}, []string{})
+		}
+	}
+
 	c.UI.Table(tbl)
 
 	return nil
