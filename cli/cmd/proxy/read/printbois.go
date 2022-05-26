@@ -8,7 +8,7 @@ import (
 )
 
 func PrintClusters(ui terminal.UI, clusters map[string]interface{}) error {
-	ui.Output("Clusters:", terminal.WithHeaderStyle())
+	ui.Output("\nClusters:")
 
 	tbl := terminal.NewTable("Name", "FQDN", "Endpoints", "Type", "Last Updated")
 

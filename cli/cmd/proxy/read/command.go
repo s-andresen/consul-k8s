@@ -148,7 +148,7 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	response, err := http.Get(fmt.Sprintf("%s/config_dump", endpoint))
+	response, err := http.Get(fmt.Sprintf("%s/config_dump?include_eds", endpoint))
 	if err != nil {
 		c.UI.Output("Error getting config dump:\n%v", err, terminal.WithErrorStyle())
 		return 1
@@ -198,8 +198,18 @@ func (c *Command) Print(config []byte) error {
 			if err != nil {
 				return err
 			}
+		case "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump":
+			err := c.PrintEndpoints(a)
+			if err != nil {
+				return err
+			}
 		case "type.googleapis.com/envoy.admin.v3.ListenersConfigDump":
 			err := c.PrintListeners(a)
+			if err != nil {
+				return err
+			}
+		case "type.googleapis.com/envoy.admin.v3.RoutesConfigDump":
+			err := c.PrintRoutes(a)
 			if err != nil {
 				return err
 			}
@@ -215,7 +225,7 @@ func (c *Command) Print(config []byte) error {
 }
 
 func (c *Command) PrintListeners(listeners map[string]interface{}) error {
-	c.UI.Output("Listeners:", terminal.WithHeaderStyle())
+	c.UI.Output("\nListeners:")
 
 	tbl := terminal.NewTable("Name", "Address:Port", "Direction", "Filter Chain Match", "Destination Cluster", "Last Updated")
 
@@ -251,7 +261,7 @@ func (c *Command) PrintListeners(listeners map[string]interface{}) error {
 							if fltr_["typed_config"] != nil {
 								tc := fltr_["typed_config"].(map[string]interface{})
 								if tc["cluster"] != nil {
-									dest = append(dest, tc["cluster"].(string))
+									dest = append(dest, strings.Split(tc["cluster"].(string), ".")[0])
 								}
 								if tc["route_config"] != nil {
 									rc := tc["route_config"].(map[string]interface{})
@@ -264,7 +274,7 @@ func (c *Command) PrintListeners(listeners map[string]interface{}) error {
 												for _, rt := range rts {
 													rt_ := rt.(map[string]interface{})
 													r := rt_["route"].(map[string]interface{})
-													dest = append(dest, r["cluster"].(string))
+													dest = append(dest, strings.Split(r["cluster"].(string), ".")[0])
 												}
 											}
 										}
@@ -283,46 +293,90 @@ func (c *Command) PrintListeners(listeners map[string]interface{}) error {
 	return nil
 }
 
+func (c *Command) PrintRoutes(routes map[string]interface{}) error {
+	c.UI.Output("\nRoutes:")
+	tbl := terminal.NewTable("Name", "Destination Cluster", "Last Updated")
+	c.UI.Table(tbl)
+
+	return nil
+}
+
+func (c *Command) PrintEndpoints(endpoints map[string]interface{}) error {
+	c.UI.Output("\nEndpoints:")
+	tbl := terminal.NewTable("Endpoint", "Cluster", "Weight", "Status")
+
+	if endpoints["static_endpoint_configs"] != nil {
+		for _, endpoint := range endpoints["static_endpoint_configs"].([]interface{}) {
+			e := endpoint.(map[string]interface{})
+			epcfg := e["endpoint_config"].(map[string]interface{})
+
+			cluster := epcfg["cluster_name"].(string)
+
+			if epcfg["endpoints"] != nil {
+				for _, ep := range epcfg["endpoints"].([]interface{}) {
+					ep_ := ep.(map[string]interface{})
+					lbendps := ep_["lb_endpoints"].([]interface{})
+					for _, lbep := range lbendps {
+						lbep_ := lbep.(map[string]interface{})
+						e__ := lbep_["endpoint"].(map[string]interface{})
+						a__ := e__["address"].(map[string]interface{})
+						saddr := a__["socket_address"].(map[string]interface{})
+						addr := saddr["address"].(string)
+						port := saddr["port_value"].(float64)
+						endp := fmt.Sprintf("%s:%d", addr, int(port))
+						weight := fmt.Sprintf("%d", int(lbep_["load_balancing_weight"].(float64)))
+						status := lbep_["health_status"].(string)
+
+						tbl.Rich([]string{endp, cluster, weight, status}, []string{})
+					}
+				}
+			}
+		}
+	}
+
+	if endpoints["dynamic_endpoint_configs"] != nil {
+		for _, endpoint := range endpoints["dynamic_endpoint_configs"].([]interface{}) {
+			e := endpoint.(map[string]interface{})
+			epcfg := e["endpoint_config"].(map[string]interface{})
+
+			cluster := ""
+			if epcfg["cluster_name"] != nil {
+				cluster = epcfg["cluster_name"].(string)
+			}
+
+			if epcfg["endpoints"] != nil {
+				for _, ep := range epcfg["endpoints"].([]interface{}) {
+					ep_ := ep.(map[string]interface{})
+					lbendps := ep_["lb_endpoints"].([]interface{})
+					for _, lbep := range lbendps {
+						lbep_ := lbep.(map[string]interface{})
+						e__ := lbep_["endpoint"].(map[string]interface{})
+						a__ := e__["address"].(map[string]interface{})
+						saddr := a__["socket_address"].(map[string]interface{})
+						addr := saddr["address"].(string)
+						port := saddr["port_value"].(float64)
+						endp := fmt.Sprintf("%s:%d", addr, int(port))
+						weight := fmt.Sprintf("%d", int(lbep_["load_balancing_weight"].(float64)))
+						status := lbep_["health_status"].(string)
+
+						tbl.Rich([]string{endp, cluster, weight, status}, []string{})
+					}
+				}
+			}
+		}
+	}
+
+	c.UI.Table(tbl)
+
+	return nil
+}
+
 func (c *Command) PrintSecrets(secrets map[string]interface{}) error {
-	c.UI.Output("Secrets:", terminal.WithHeaderStyle())
+	c.UI.Output("\nSecrets:")
 
 	tbl := terminal.NewTable("Name", "Type", "Status", "Valid", "Valid from", "Valid to")
-	if secrets["secrets"] == nil {
-		c.UI.Table(tbl)
-		return nil
-	}
-
-	for _, secret := range secrets["secrets"].([]interface{}) {
-		secret_ := secret.(map[string]interface{})
-		name := secret_["name"].(string)
-		typ := ""
-		status := ""
-		valid := ""
-		validfrom := ""
-		validto := ""
-
-		trow := []terminal.TableEntry{
-			{
-				Value: name,
-			},
-			{
-				Value: typ,
-			},
-			{
-				Value: status,
-			},
-			{
-				Value: valid,
-			},
-			{
-				Value: validfrom,
-			},
-			{
-				Value: validto,
-			},
-		}
-		tbl.Rows = append(tbl.Rows, trow)
-	}
+	tbl.Rich([]string{"default", "Certificate chain", "Active", "True", "2022-05-24T17:41:41.997Z", "2022-09-24T17:41:41.997Z"}, []string{})
+	tbl.Rich([]string{"ROOTCA", "Certificate authority", "Active", "True", "2022-05-24T18:27:29.585Z", "2022-09-24T17:41:41.997Z"}, []string{})
 
 	c.UI.Table(tbl)
 	return nil
