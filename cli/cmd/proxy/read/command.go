@@ -225,71 +225,116 @@ func (c *Command) Print(config []byte) error {
 }
 
 func (c *Command) PrintListeners(listeners map[string]interface{}) error {
-	c.UI.Output("\nListeners:")
 
-	tbl := terminal.NewTable("Name", "Address:Port", "Direction", "Filter Chain Match", "Destination Cluster", "Last Updated")
+	inboundTbl := terminal.NewTable("Name", "Address:Port", "Filter", "Destination Cluster", "Last Updated")
+	outboundTbl := terminal.NewTable("Name", "Address:Port", "Filter Chain Match", "Destination Cluster", "Last Updated")
 
 	if listeners["dynamic_listeners"] != nil {
-
 		for _, listener := range listeners["dynamic_listeners"].([]interface{}) {
-			l := listener.(map[string]interface{})
-			al := l["active_state"].(map[string]interface{})
-			name := strings.Split(l["name"].(string), ":")[0]
-			addr := strings.SplitN(l["name"].(string), ":", 2)[1]
-			l2 := al["listener"].(map[string]interface{})
-			direction := l2["traffic_direction"].(string)
-			fcm := []string{}
-			dest := []string{}
-			lastUpdated := al["last_updated"].(string)
+			listener_ := listener.(map[string]interface{})
 
-			if direction == "OUTBOUND" {
-				fcs := l2["filter_chains"].([]interface{})
-				for _, fc := range fcs {
-					fc_ := fc.(map[string]interface{})
-					if fc_["filter_chain_match"] != nil {
-						fcmtch := fc_["filter_chain_match"].(map[string]interface{})
-						prs := fcmtch["prefix_ranges"].([]interface{})
-						for _, pr := range prs {
-							pr_ := pr.(map[string]interface{})
-							fcm = append(fcm, pr_["address_prefix"].(string))
-						}
-					}
-					if fc_["filters"] != nil {
-						fltrs := fc_["filters"].([]interface{})
-						for _, fltr := range fltrs {
-							fltr_ := fltr.(map[string]interface{})
-							if fltr_["typed_config"] != nil {
-								tc := fltr_["typed_config"].(map[string]interface{})
-								if tc["cluster"] != nil {
-									dest = append(dest, strings.Split(tc["cluster"].(string), ".")[0])
-								}
-								if tc["route_config"] != nil {
-									rc := tc["route_config"].(map[string]interface{})
-									if rc["virtual_hosts"] != nil {
-										vhs := rc["virtual_hosts"].([]interface{})
-										for _, vh := range vhs {
-											vh_ := vh.(map[string]interface{})
-											if vh_["routes"] != nil {
-												rts := vh_["routes"].([]interface{})
-												for _, rt := range rts {
-													rt_ := rt.(map[string]interface{})
-													r := rt_["route"].(map[string]interface{})
-													dest = append(dest, strings.Split(r["cluster"].(string), ".")[0])
-												}
-											}
-										}
+			name := strings.Split(listener_["name"].(string), ":")[0]
+			addr := strings.SplitN(listener_["name"].(string), ":", 2)[1]
+
+			activeState := listener_["active_state"].(map[string]interface{})
+			lastUpdated := activeState["last_updated"].(string)
+
+			activeStateListener := activeState["listener"].(map[string]interface{})
+			direction := activeStateListener["traffic_direction"].(string)
+
+			if direction == "INBOUND" {
+				if activeStateListener["filter_chains"] != nil {
+					filterChains := activeStateListener["filter_chains"].([]interface{})
+					for _, filterChain := range filterChains {
+						fc := filterChain.(map[string]interface{})
+						if fc["filters"] != nil {
+							for _, filter := range fc["filters"].([]interface{}) {
+								f := filter.(map[string]interface{})
+								typedConfig := f["typed_config"].(map[string]interface{})
+								if typedConfig["rules"] != nil {
+									rules := typedConfig["rules"].(map[string]interface{})
+									action := rules["action"].(string)
+									policies := rules["policies"].(map[string]interface{})
+									cil4 := policies["consul-intentions-layer4"].(map[string]interface{})
+									principals := cil4["principals"].([]interface{})
+
+									regex := []string{}
+									for _, principal := range principals {
+										p := principal.(map[string]interface{})
+										r := p["authenticated"].(map[string]interface{})["principal_name"].(map[string]interface{})["safe_regex"].(map[string]interface{})["regex"].(string)
+										regex = append(regex, r)
 									}
+
+									rule := fmt.Sprintf("%s %s", action, strings.Join(regex, ","))
+									inboundTbl.Rich([]string{name, addr, rule, "", lastUpdated}, []string{})
+								}
+								if typedConfig["cluster"] != nil {
+									cluster := typedConfig["cluster"].(string)
+									inboundTbl.Rich([]string{name, addr, "", cluster, lastUpdated}, []string{})
 								}
 							}
 						}
 					}
 				}
 			}
-			tbl.Rich([]string{name, addr, direction, strings.Join(fcm, ", "), strings.Join(dest, ", "), lastUpdated}, []string{})
+
+			if direction == "OUTBOUND" {
+				if activeStateListener["filter_chains"] != nil {
+
+					fcs := activeStateListener["filter_chains"].([]interface{})
+					for _, fc := range fcs {
+						fcm := []string{}
+						dest := []string{}
+						fc_ := fc.(map[string]interface{})
+						if fc_["filter_chain_match"] != nil {
+							fcmtch := fc_["filter_chain_match"].(map[string]interface{})
+							prs := fcmtch["prefix_ranges"].([]interface{})
+							for _, pr := range prs {
+								pr_ := pr.(map[string]interface{})
+								fcm = append(fcm, pr_["address_prefix"].(string))
+							}
+						}
+						if fc_["filters"] != nil {
+							fltrs := fc_["filters"].([]interface{})
+							for _, fltr := range fltrs {
+								fltr_ := fltr.(map[string]interface{})
+								if fltr_["typed_config"] != nil {
+									tc := fltr_["typed_config"].(map[string]interface{})
+									if tc["cluster"] != nil {
+										dest = append(dest, strings.Split(tc["cluster"].(string), ".")[0])
+									}
+									if tc["route_config"] != nil {
+										rc := tc["route_config"].(map[string]interface{})
+										if rc["virtual_hosts"] != nil {
+											vhs := rc["virtual_hosts"].([]interface{})
+											for _, vh := range vhs {
+												vh_ := vh.(map[string]interface{})
+												if vh_["routes"] != nil {
+													rts := vh_["routes"].([]interface{})
+													for _, rt := range rts {
+														rt_ := rt.(map[string]interface{})
+														r := rt_["route"].(map[string]interface{})
+														dest = append(dest, strings.Split(r["cluster"].(string), ".")[0])
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+							outboundTbl.Rich([]string{name, addr, strings.Join(fcm, ", "), strings.Join(dest, ", "), lastUpdated}, []string{})
+						}
+					}
+				}
+			}
 		}
 	}
 
-	c.UI.Table(tbl)
+	c.UI.Output("\nInbound Listeners:")
+	c.UI.Table(inboundTbl)
+
+	c.UI.Output("\nOutbound Listeners:")
+	c.UI.Table(outboundTbl)
 	return nil
 }
 
