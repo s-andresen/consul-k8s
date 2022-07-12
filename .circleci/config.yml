@@ -900,7 +900,7 @@ jobs:
           path: /tmp/test-results
       - slack/status:
           fail_only: true
-          failure_message: "Acceptance tests against Kind with Kubernetes v1.23 with Consul 1.11.x nightly failed. Check the logs at: ${CIRCLE_BUILD_URL}"
+          failure_message: "Acceptance tests against Kind with Kubernetes v1.23 with Consul 1.11 nightly failed. Check the logs at: ${CIRCLE_BUILD_URL}"
 
   acceptance-kind-1-23-consul-nightly-1-12:
     environment:
@@ -1038,15 +1038,15 @@ workflows:
           requires:
             - dev-upload-docker
 
-#  nightly-acceptance-tests-consul:
-#    triggers:
-#      - schedule:
-#          cron: "0 0 * * *"
-#          filters:
-#            branches:
-#              only:
-#                - main
-#    jobs:
-#      - acceptance-kind-1-23-consul-nightly-1-11
-#      - acceptance-kind-1-23-consul-nightly-1-12
+  nightly-acceptance-tests-consul:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - main
+    jobs:
+      - acceptance-kind-1-23-consul-nightly-1-11
+      - acceptance-kind-1-23-consul-nightly-1-12
 #      - acceptance-kind-1-23-consul-nightly-1-13
