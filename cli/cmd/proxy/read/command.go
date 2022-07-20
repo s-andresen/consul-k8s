@@ -226,9 +226,8 @@ func (c *ReadCommand) validateFlags() error {
 	return nil
 }
 
-// tableFiltersPassed returns true if a flag which filters the
-// set of tables output is passed.
-func (c *ReadCommand) tableFiltersPassed() bool {
+// areTablesFiltered returns true if a table filtering flag was passed in.
+func (c *ReadCommand) areTablesFiltered() bool {
 	return c.flagClusters || c.flagEndpoints || c.flagListeners || c.flagRoutes || c.flagSecrets
 }
 
@@ -277,19 +276,19 @@ func (c *ReadCommand) outputConfig(config *EnvoyConfig) error {
 
 func (c *ReadCommand) outputAsJSON(config *EnvoyConfig) error {
 	cfg := make(map[string]interface{})
-	if !c.tableFiltersPassed() || c.flagClusters {
+	if !c.areTablesFiltered() || c.flagClusters {
 		cfg["clusters"] = FilterClusters(config.Clusters, c.flagFQDN, c.flagAddress, c.flagPort)
 	}
-	if !c.tableFiltersPassed() || c.flagEndpoints {
+	if !c.areTablesFiltered() || c.flagEndpoints {
 		cfg["endpoints"] = FilterEndpoints(config.Endpoints, c.flagAddress, c.flagPort)
 	}
-	if !c.tableFiltersPassed() || c.flagListeners {
+	if !c.areTablesFiltered() || c.flagListeners {
 		cfg["listeners"] = FilterListeners(config.Listeners, c.flagAddress, c.flagPort)
 	}
-	if !c.tableFiltersPassed() || c.flagRoutes {
+	if !c.areTablesFiltered() || c.flagRoutes {
 		cfg["routes"] = config.Routes
 	}
-	if !c.tableFiltersPassed() || c.flagSecrets {
+	if !c.areTablesFiltered() || c.flagSecrets {
 		cfg["secrets"] = config.Secrets
 	}
 
@@ -326,7 +325,7 @@ func (c *ReadCommand) outputAsTables(config *EnvoyConfig) {
 }
 
 func (c *ReadCommand) outputClustersTable(clusters []Cluster) {
-	if c.tableFiltersPassed() && !c.flagClusters {
+	if c.areTablesFiltered() && !c.flagClusters {
 		return
 	}
 
@@ -341,7 +340,7 @@ func (c *ReadCommand) outputClustersTable(clusters []Cluster) {
 }
 
 func (c *ReadCommand) outputEndpointsTable(endpoints []Endpoint) {
-	if c.tableFiltersPassed() && !c.flagEndpoints {
+	if c.areTablesFiltered() && !c.flagEndpoints {
 		return
 	}
 
@@ -364,7 +363,7 @@ func (c *ReadCommand) outputEndpointsTable(endpoints []Endpoint) {
 }
 
 func (c *ReadCommand) outputListenersTable(listeners []Listener) {
-	if c.tableFiltersPassed() && !c.flagListeners {
+	if c.areTablesFiltered() && !c.flagListeners {
 		return
 	}
 
@@ -391,7 +390,7 @@ func (c *ReadCommand) outputListenersTable(listeners []Listener) {
 }
 
 func (c *ReadCommand) outputRoutesTable(routes []Route) {
-	if c.tableFiltersPassed() && !c.flagRoutes {
+	if c.areTablesFiltered() && !c.flagRoutes {
 		return
 	}
 
@@ -405,7 +404,7 @@ func (c *ReadCommand) outputRoutesTable(routes []Route) {
 }
 
 func (c *ReadCommand) outputSecretsTable(secrets []Secret) {
-	if c.tableFiltersPassed() && !c.flagSecrets {
+	if c.areTablesFiltered() && !c.flagSecrets {
 		return
 	}
 
